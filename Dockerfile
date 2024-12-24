@@ -16,8 +16,8 @@ COPY . .
 # 构建应用
 RUN npm run build
 
-# 暴露3000端口
-EXPOSE 3000
+# 暴露8080端口
+EXPOSE 8080
 
-# 启动nginx
-CMD ["npm", "start"] 
+# 启动
+CMD ["npm", "run", "serve"]
