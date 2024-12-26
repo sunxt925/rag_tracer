@@ -7,8 +7,8 @@ module.exports = defineConfig({
   devServer: {
     proxy: {
       '/api': {
-        // target: 'http://101.42.184.25:8095',
-        target: 'http://xyz.rag-workflow.test.ke.com',
+        target: 'http://101.42.184.25:8095',
+        // target: 'http://xyz.rag-workflow.test.ke.com',
         changeOrigin: true,
         pathRewrite: { '^/api': '/api' },
       },
