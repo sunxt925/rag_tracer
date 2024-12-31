@@ -16,6 +16,11 @@ const routes = [
     path: '/bak',
     name: 'bak',
     component: Bak
+  },
+  {
+    path: '/llm_agg',
+    name: 'LlmAgg',
+    component: () => import('@/views/LlmAgg.vue')
   }
 ]
 

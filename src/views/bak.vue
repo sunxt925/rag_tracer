@@ -10,467 +10,492 @@
         </div>
       </template>
       
-      <el-form 
-        :model="queryForm" 
-        label-width="100px" 
-        class="query-form"
-        @submit.prevent="handleQuery"
-      >
-        <el-form-item label="Trace ID">
-          <el-input 
-            v-model="queryForm.traceId" 
-            placeholder="请输入完整的 Trace ID 进行查询..."
-            clearable
-            class="dark-input"
-            @keyup.enter="handleQuery"
-          >
-            <template #prepend>
-              <el-icon><el-key /></el-icon>
-            </template>
-            <template #append>
-              <el-button 
-                type="primary" 
-                @click="handleQuery"
-                :loading="isLoading"
-                class="search-btn"
-              >
-                <el-icon><el-search /></el-icon>
-                {{ isLoading ? '查询中' : '查询' }}
-              </el-button>
-            </template>
-          </el-input>
-        </el-form-item>
-      </el-form>
+      <!-- 添加二级菜单 -->
+      <div class="sub-menu">
+        <el-menu 
+          mode="horizontal" 
+          class="sub-menu-list"
+          :default-active="activeTab"
+          @select="handleTabChange"
+        >
+          <el-menu-item index="trace">
+            <el-icon><el-connection /></el-icon>
+            链路追踪
+          </el-menu-item>
+          <el-menu-item index="llm_agg">
+            <el-icon><el-data-analysis /></el-icon>
+            模型统计
+          </el-menu-item>
+        </el-menu>
+      </div>
 
-      <template v-if="ragInfo.query">
-        <div class="rag-info-section">
-          <div class="rag-info-header">RAG 信息</div>
-          <div class="rag-info-content">
-            <div class="rag-info-item">
-              <div class="rag-info-label">环境</div>
-              <div class="rag-info-value">{{ ragInfo.env }}</div>
-            </div>
-            <div class="rag-info-item">
-              <div class="rag-info-label">Query</div>
-              <div class="rag-info-value">{{ ragInfo.query }}</div>
-            </div>
-            <div class="rag-info-item">
-              <div class="rag-info-label">Message ID</div>
-              <div class="rag-info-value">{{ ragInfo.messageId }}</div>
+      <div v-if="activeTab === 'trace'">
+        <el-form 
+          :model="queryForm" 
+          label-width="100px" 
+          class="query-form"
+          @submit.prevent="handleQuery"
+        >
+          <el-form-item label="Trace ID">
+            <el-input 
+              v-model="queryForm.traceId" 
+              placeholder="请输入完整的 Trace ID 进行查询..."
+              clearable
+              class="dark-input"
+              @keyup.enter="handleQuery"
+            >
+              <template #prepend>
+                <el-icon><el-key /></el-icon>
+              </template>
+              <template #append>
+                <el-button 
+                  type="primary" 
+                  @click="handleQuery"
+                  :loading="isLoading"
+                  class="search-btn"
+                >
+                  <el-icon><el-search /></el-icon>
+                  {{ isLoading ? '查询中' : '查询' }}
+                </el-button>
+              </template>
+            </el-input>
+          </el-form-item>
+        </el-form>
+
+        <template v-if="ragInfo.query">
+          <div class="rag-info-section">
+            <div class="rag-info-header">RAG 信息</div>
+            <div class="rag-info-content">
+              <div class="rag-info-item">
+                <div class="rag-info-label">环境</div>
+                <div class="rag-info-value">{{ ragInfo.env }}</div>
+              </div>
+              <div class="rag-info-item">
+                <div class="rag-info-label">Query</div>
+                <div class="rag-info-value">{{ ragInfo.query }}</div>
+              </div>
+              <div class="rag-info-item">
+                <div class="rag-info-label">Message ID</div>
+                <div class="rag-info-value">{{ ragInfo.messageId }}</div>
+              </div>
             </div>
           </div>
-        </div>
-      </template>
+        </template>
 
-      <el-tabs v-model="activeView" class="view-tabs" @tab-click="handleViewChange">
-        <el-tab-pane name="timeline">
-          <template #label>
-            <el-icon><el-timer /></el-icon> 时序视图
-          </template>
-        </el-tab-pane>
-        <el-tab-pane name="service-business">
-          <template #label>
-            <el-icon><el-office-building /></el-icon> 服务-业务类型视图
-          </template>
-        </el-tab-pane>
-        <el-tab-pane name="service">
-          <template #label>
-            <el-icon><el-service /></el-icon> 服务视图
-          </template>
-        </el-tab-pane>
-        <el-tab-pane name="service-node">
-          <template #label>
-            <el-icon><el-share /></el-icon> 服务-节点视图
-          </template>
-        </el-tab-pane>
-      </el-tabs>
+        <el-tabs v-model="activeView" class="view-tabs" @tab-click="handleViewChange">
+          <el-tab-pane name="timeline">
+            <template #label>
+              <el-icon><el-timer /></el-icon> 时序视图
+            </template>
+          </el-tab-pane>
+          <el-tab-pane name="service-business">
+            <template #label>
+              <el-icon><el-office-building /></el-icon> 服务-业务类型视图
+            </template>
+          </el-tab-pane>
+          <el-tab-pane name="service">
+            <template #label>
+              <el-icon><el-service /></el-icon> 服务视图
+            </template>
+          </el-tab-pane>
+          <el-tab-pane name="service-node">
+            <template #label>
+              <el-icon><el-share /></el-icon> 服务-节点视图
+            </template>
+          </el-tab-pane>
+        </el-tabs>
 
-      <!-- 查询结果列表 -->
-      <div class="query-results" v-if="traceNodes.length">
-        <!-- 时序视图 -->
-        <el-table 
-          v-if="activeView === 'timeline'"
-          :data="traceNodes" 
-          stripe 
-          style="width: 100%"
-          class="dark-table"
-        >
-          <el-table-column 
-            prop="node_key" 
-            label="节点" 
-            width="180"
-            :filters="nodeKeyOptions"
-            :filter-method="handleColumnFilter"
-            filter-placement="bottom-start"
+        <!-- 查询结果列表 -->
+        <div class="query-results" v-if="traceNodes.length">
+          <!-- 时序视图 -->
+          <el-table 
+            v-if="activeView === 'timeline'"
+            :data="traceNodes" 
+            stripe 
+            style="width: 100%"
+            class="dark-table"
           >
-            <template #default="{ row }">
-              <div class="node-cell">
-                <el-icon><el-connection /></el-icon>
-                {{ row.node_key }}
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="__created_at" label="创建时间" width="180">
-            <template #default="{ row }">
-              <div class="time-cell">
-                <el-icon><el-timer /></el-icon>
-                {{ formatTime(row.__created_at) }}
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="endpoint" label="端点" width="180">
-            <template #default="{ row }">
-              <div class="endpoint-cell">
-                <el-icon><el-position /></el-icon>
-                {{ row.endpoint }}
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="time_cost" label="耗时(s)" width="120">
-            <template #default="{ row }">
-              <div class="time-cost-cell">
-                <el-icon><el-timer /></el-icon>
-                {{ Number(row.time_cost).toFixed(2) }}s
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column 
-            prop="business_type" 
-            label="业务类型" 
-            width="150"
-            :filters="businessTypeOptions"
-            :filter-method="handleColumnFilter"
-            filter-placement="bottom-start"
-          >
-            <template #default="{ row }">
-              <div class="business-type-cell">
-                <el-icon><el-office-building /></el-icon>
-                {{ row.business_type }}
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column 
-            prop="from_service" 
-            label="来源服务" 
-            width="150"
-            :filters="fromServiceOptions"
-            :filter-method="handleColumnFilter"
-            filter-placement="bottom-start"
-          >
-            <template #default="{ row }">
-              <div class="service-cell">
-                <el-icon><el-service /></el-icon>
-                {{ row.from_service }}
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="node_desc" label="节点描述" width="150">
-            <template #default="{ row }">
-              <div class="node-desc-cell">
-                <el-icon><el-info-filled /></el-icon>
-                {{ row.node_desc }}
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="node_name" label="节点名称" width="150">
-            <template #default="{ row }">
-              <div class="node-name-cell">
-                <el-icon><el-price-tag /></el-icon>
-                {{ row.node_name }}
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="事件数据" min-width="200">
-            <template #default="{ row }">
-              <el-button 
-                type="text" 
-                @click="showEventData(row.event_data)"
-                class="view-btn"
-              >
-                <el-icon><el-document /></el-icon>
-                查看详情
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-
-        <!-- 服务视图 -->
-        <div v-else-if="activeView === 'service'" class="service-view">
-          <el-collapse v-model="activeGroups">
-            <el-collapse-item 
-              v-for="group in groupedServices" 
-              :key="group.serviceName"
-              :title="group.serviceName"
-              :name="group.serviceName"
+            <el-table-column 
+              prop="node_key" 
+              label="节点" 
+              width="180"
+              :filters="nodeKeyOptions"
+              :filter-method="handleColumnFilter"
+              filter-placement="bottom-start"
             >
-              <template #title>
-                <div class="group-title">
-                  <el-icon><el-service /></el-icon>
-                  <span>{{ group.serviceName || '未知服务' }}</span>
-                  <el-tag size="small" type="success">{{ group.nodes.length }}</el-tag>
+              <template #default="{ row }">
+                <div class="node-cell">
+                  <el-icon><el-connection /></el-icon>
+                  {{ row.node_key }}
                 </div>
               </template>
-              
-              <el-table 
-                :data="group.nodes" 
-                stripe 
-                style="width: 100%"
-                class="dark-table nested-table"
-              >
-                <el-table-column prop="node_key" label="节点" width="180">
-                  <template #default="{ row }">
-                    <div class="node-cell">
-                      <el-icon><el-connection /></el-icon>
-                      {{ row.node_key }}
-                    </div>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="node_name" label="节点名称" width="150">
-                  <template #default="{ row }">
-                    <div class="node-name-cell">
-                      <el-icon><el-price-tag /></el-icon>
-                      {{ row.node_name }}
-                    </div>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="node_desc" label="节点描述" width="200">
-                  <template #default="{ row }">
-                    <div class="node-desc-cell">
-                      <el-icon><el-info-filled /></el-icon>
-                      {{ row.node_desc }}
-                    </div>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="__created_at" label="创建时间" width="180">
-                  <template #default="{ row }">
-                    <div class="time-cell">
-                      <el-icon><el-timer /></el-icon>
-                      {{ formatTime(row.__created_at) }}
-                    </div>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="endpoint" label="端点" width="180">
-                  <template #default="{ row }">
-                    <div class="endpoint-cell">
-                      <el-icon><el-position /></el-icon>
-                      {{ row.endpoint }}
-                    </div>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="time_cost" label="耗时(ms)" width="120">
-                  <template #default="{ row }">
-                    <div class="time-cost-cell">
-                      <el-icon><el-timer /></el-icon>
-                      {{ row.time_cost }}
-                    </div>
-                  </template>
-                </el-table-column>
-                <el-table-column label="事件数据" min-width="200">
-                  <template #default="{ row }">
-                    <el-button 
-                      type="text" 
-                      @click="showEventData(row.event_data)"
-                      class="view-btn"
-                    >
-                      <el-icon><el-document /></el-icon>
-                      查看详情
-                    </el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </el-collapse-item>
-          </el-collapse>
-        </div>
-
-        <!-- 服务-节点视图 -->
-        <div v-else-if="activeView === 'service-node'" class="service-node-view">
-          <el-collapse v-model="activeServiceGroups">
-            <el-collapse-item 
-              v-for="serviceGroup in groupedServiceNodes" 
-              :key="serviceGroup.serviceName"
-              :name="serviceGroup.serviceName"
-            >
-              <!-- 服务层级标题 -->
-              <template #title>
-                <div class="service-group-title">
-                  <el-icon><el-service /></el-icon>
-                  <span>{{ serviceGroup.serviceName || '未知服务' }}</span>
-                  <el-tag size="small" type="success">{{ serviceGroup.totalNodes }}条记录</el-tag>
+            </el-table-column>
+            <el-table-column prop="__created_at" label="创建时间" width="180">
+              <template #default="{ row }">
+                <div class="time-cell">
+                  <el-icon><el-timer /></el-icon>
+                  {{ formatTime(row.__created_at) }}
                 </div>
               </template>
-              
-              <!-- 节点分组 -->
-              <el-collapse v-model="activeNodeGroups[serviceGroup.serviceName]">
-                <el-collapse-item 
-                  v-for="nodeGroup in serviceGroup.nodeGroups" 
-                  :key="nodeGroup.nodeKey"
-                  :name="nodeGroup.nodeKey"
+            </el-table-column>
+            <el-table-column prop="endpoint" label="端点" width="180">
+              <template #default="{ row }">
+                <div class="endpoint-cell">
+                  <el-icon><el-position /></el-icon>
+                  {{ row.endpoint }}
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="time_cost" label="耗时(s)" width="120">
+              <template #default="{ row }">
+                <div class="time-cost-cell">
+                  <el-icon><el-timer /></el-icon>
+                  {{ Number(row.time_cost).toFixed(2) }}s
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column 
+              prop="business_type" 
+              label="业务类型" 
+              width="150"
+              :filters="businessTypeOptions"
+              :filter-method="handleColumnFilter"
+              filter-placement="bottom-start"
+            >
+              <template #default="{ row }">
+                <div class="business-type-cell">
+                  <el-icon><el-office-building /></el-icon>
+                  {{ row.business_type }}
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column 
+              prop="from_service" 
+              label="来源服务" 
+              width="150"
+              :filters="fromServiceOptions"
+              :filter-method="handleColumnFilter"
+              filter-placement="bottom-start"
+            >
+              <template #default="{ row }">
+                <div class="service-cell">
+                  <el-icon><el-service /></el-icon>
+                  {{ row.from_service }}
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="node_desc" label="节点描述" width="150">
+              <template #default="{ row }">
+                <div class="node-desc-cell">
+                  <el-icon><el-info-filled /></el-icon>
+                  {{ row.node_desc }}
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="node_name" label="节点名称" width="150">
+              <template #default="{ row }">
+                <div class="node-name-cell">
+                  <el-icon><el-price-tag /></el-icon>
+                  {{ row.node_name }}
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="事件数据" min-width="200">
+              <template #default="{ row }">
+                <el-button 
+                  type="text" 
+                  @click="showEventData(row.event_data)"
+                  class="view-btn"
                 >
-                  <template #title>
-                    <div class="node-group-title">
-                      <el-icon><el-connection /></el-icon>
-                      <div class="node-info">
-                        <span class="node-key">{{ nodeGroup.nodeKey }}</span>
-                        <span class="node-name">{{ nodeGroup.nodes[0].node_name }}</span>
+                  <el-icon><el-document /></el-icon>
+                  查看详情
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <!-- 服务视图 -->
+          <div v-else-if="activeView === 'service'" class="service-view">
+            <el-collapse v-model="activeGroups">
+              <el-collapse-item 
+                v-for="group in groupedServices" 
+                :key="group.serviceName"
+                :title="group.serviceName"
+                :name="group.serviceName"
+              >
+                <template #title>
+                  <div class="group-title">
+                    <el-icon><el-service /></el-icon>
+                    <span>{{ group.serviceName || '未知服务' }}</span>
+                    <el-tag size="small" type="success">{{ group.nodes.length }}</el-tag>
+                  </div>
+                </template>
+                
+                <el-table 
+                  :data="group.nodes" 
+                  stripe 
+                  style="width: 100%"
+                  class="dark-table nested-table"
+                >
+                  <el-table-column prop="node_key" label="节点" width="180">
+                    <template #default="{ row }">
+                      <div class="node-cell">
+                        <el-icon><el-connection /></el-icon>
+                        {{ row.node_key }}
                       </div>
-                      <el-tooltip 
-                        :content="nodeGroup.nodes[0].node_desc || '暂无描述'" 
-                        placement="top"
-                        :open-delay="300"
-                      >
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="node_name" label="节点名称" width="150">
+                    <template #default="{ row }">
+                      <div class="node-name-cell">
+                        <el-icon><el-price-tag /></el-icon>
+                        {{ row.node_name }}
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="node_desc" label="节点描述" width="200">
+                    <template #default="{ row }">
+                      <div class="node-desc-cell">
                         <el-icon><el-info-filled /></el-icon>
-                      </el-tooltip>
-                      <el-tag size="small" type="info">{{ nodeGroup.nodes.length }}</el-tag>
-                    </div>
-                  </template>
-                  
-                  <el-table 
-                    :data="nodeGroup.nodes" 
-                    stripe 
-                    style="width: 100%"
-                    class="dark-table nested-table"
-                  >
-                    <el-table-column prop="__created_at" label="创建时间" width="180">
-                      <template #default="{ row }">
-                        <div class="time-cell">
-                          <el-icon><el-timer /></el-icon>
-                          {{ formatTime(row.__created_at) }}
-                        </div>
-                      </template>
-                    </el-table-column>
-                    <el-table-column prop="endpoint" label="端点" width="180">
-                      <template #default="{ row }">
-                        <div class="endpoint-cell">
-                          <el-icon><el-position /></el-icon>
-                          {{ row.endpoint }}
-                        </div>
-                      </template>
-                    </el-table-column>
-                    <el-table-column prop="time_cost" label="耗时(ms)" width="120">
-                      <template #default="{ row }">
-                        <div class="time-cost-cell">
-                          <el-icon><el-timer /></el-icon>
-                          {{ row.time_cost }}
-                        </div>
-                      </template>
-                    </el-table-column>
-                    <el-table-column label="事件数据" min-width="200">
-                      <template #default="{ row }">
-                        <el-button 
-                          type="text" 
-                          @click="showEventData(row.event_data)"
-                          class="view-btn"
-                        >
-                          <el-icon><el-document /></el-icon>
-                          查看详情
-                        </el-button>
-                      </template>
-                    </el-table-column>
-                  </el-table>
-                </el-collapse-item>
-              </el-collapse>
-            </el-collapse-item>
-          </el-collapse>
-        </div>
-
-        <!-- 服务-业务类型视图 -->
-        <div v-else-if="activeView === 'service-business'" class="service-business-view">
-          <el-collapse v-model="activeServiceBusinessGroups">
-            <el-collapse-item 
-              v-for="serviceGroup in groupedServiceBusiness" 
-              :key="serviceGroup.serviceName"
-              :name="serviceGroup.serviceName"
-            >
-              <!-- 服务层级标题 -->
-              <template #title>
-                <div class="service-group-title">
-                  <el-icon><el-service /></el-icon>
-                  <span>{{ serviceGroup.serviceName || '未知服务' }}</span>
-                  <el-tag size="small" type="success">{{ serviceGroup.totalNodes }}条记录</el-tag>
-                </div>
-              </template>
-              
-              <!-- 业务类型分组 -->
-              <el-collapse v-model="activeBusinessGroups[serviceGroup.serviceName]">
-                <el-collapse-item 
-                  v-for="businessGroup in serviceGroup.businessGroups" 
-                  :key="businessGroup.businessType"
-                  :name="businessGroup.businessType"
-                >
-                  <template #title>
-                    <div class="business-group-title">
-                      <el-icon><el-office-building /></el-icon>
-                      <div class="business-info">
-                        <span class="business-type">{{ businessGroup.businessType || '未知业务类型' }}</span>
+                        {{ row.node_desc }}
                       </div>
-                      <el-tag size="small" type="info">{{ businessGroup.nodes.length }}</el-tag>
-                    </div>
-                  </template>
-                  
-                  <el-table 
-                    :data="businessGroup.nodes" 
-                    stripe 
-                    style="width: 100%"
-                    class="dark-table nested-table"
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="__created_at" label="创建时间" width="180">
+                    <template #default="{ row }">
+                      <div class="time-cell">
+                        <el-icon><el-timer /></el-icon>
+                        {{ formatTime(row.__created_at) }}
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="endpoint" label="端点" width="180">
+                    <template #default="{ row }">
+                      <div class="endpoint-cell">
+                        <el-icon><el-position /></el-icon>
+                        {{ row.endpoint }}
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="time_cost" label="耗时(ms)" width="120">
+                    <template #default="{ row }">
+                      <div class="time-cost-cell">
+                        <el-icon><el-timer /></el-icon>
+                        {{ row.time_cost }}
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="事件数据" min-width="200">
+                    <template #default="{ row }">
+                      <el-button 
+                        type="text" 
+                        @click="showEventData(row.event_data)"
+                        class="view-btn"
+                      >
+                        <el-icon><el-document /></el-icon>
+                        查看详情
+                      </el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </el-collapse-item>
+            </el-collapse>
+          </div>
+
+          <!-- 服务-节点视图 -->
+          <div v-else-if="activeView === 'service-node'" class="service-node-view">
+            <el-collapse v-model="activeServiceGroups">
+              <el-collapse-item 
+                v-for="serviceGroup in groupedServiceNodes" 
+                :key="serviceGroup.serviceName"
+                :name="serviceGroup.serviceName"
+              >
+                <!-- 服务层级标题 -->
+                <template #title>
+                  <div class="service-group-title">
+                    <el-icon><el-service /></el-icon>
+                    <span>{{ serviceGroup.serviceName || '未知服务' }}</span>
+                    <el-tag size="small" type="success">{{ serviceGroup.totalNodes }}条记录</el-tag>
+                  </div>
+                </template>
+                
+                <!-- 节点分组 -->
+                <el-collapse v-model="activeNodeGroups[serviceGroup.serviceName]">
+                  <el-collapse-item 
+                    v-for="nodeGroup in serviceGroup.nodeGroups" 
+                    :key="nodeGroup.nodeKey"
+                    :name="nodeGroup.nodeKey"
                   >
-                    <el-table-column prop="__created_at" label="创建时间" width="180">
-                      <template #default="{ row }">
-                        <div class="time-cell">
-                          <el-icon><el-timer /></el-icon>
-                          {{ formatTime(row.__created_at) }}
+                    <template #title>
+                      <div class="node-group-title">
+                        <el-icon><el-connection /></el-icon>
+                        <div class="node-info">
+                          <span class="node-key">{{ nodeGroup.nodeKey }}</span>
+                          <span class="node-name">{{ nodeGroup.nodes[0].node_name }}</span>
                         </div>
-                      </template>
-                    </el-table-column>
-                    <el-table-column prop="node_key" label="节点" width="180">
-                      <template #default="{ row }">
-                        <div class="node-cell">
-                          <el-icon><el-connection /></el-icon>
-                          {{ row.node_key }}
-                        </div>
-                      </template>
-                    </el-table-column>
-                    <el-table-column prop="node_name" label="节点名称" width="150">
-                      <template #default="{ row }">
-                        <div class="node-name-cell">
-                          <el-icon><el-price-tag /></el-icon>
-                          {{ row.node_name }}
-                        </div>
-                      </template>
-                    </el-table-column>
-                    <el-table-column prop="endpoint" label="端点" width="180">
-                      <template #default="{ row }">
-                        <div class="endpoint-cell">
-                          <el-icon><el-position /></el-icon>
-                          {{ row.endpoint }}
-                        </div>
-                      </template>
-                    </el-table-column>
-                    <el-table-column prop="time_cost" label="耗时(ms)" width="120">
-                      <template #default="{ row }">
-                        <div class="time-cost-cell">
-                          <el-icon><el-timer /></el-icon>
-                          {{ row.time_cost }}
-                        </div>
-                      </template>
-                    </el-table-column>
-                    <el-table-column label="事件数据" min-width="200">
-                      <template #default="{ row }">
-                        <el-button 
-                          type="text" 
-                          @click="showEventData(row.event_data)"
-                          class="view-btn"
+                        <el-tooltip 
+                          :content="nodeGroup.nodes[0].node_desc || '暂无描述'" 
+                          placement="top"
+                          :open-delay="300"
                         >
-                          <el-icon><el-document /></el-icon>
-                          查看详情
-                        </el-button>
-                      </template>
-                    </el-table-column>
-                  </el-table>
-                </el-collapse-item>
-              </el-collapse>
-            </el-collapse-item>
-          </el-collapse>
+                          <el-icon><el-info-filled /></el-icon>
+                        </el-tooltip>
+                        <el-tag size="small" type="info">{{ nodeGroup.nodes.length }}</el-tag>
+                      </div>
+                    </template>
+                    
+                    <el-table 
+                      :data="nodeGroup.nodes" 
+                      stripe 
+                      style="width: 100%"
+                      class="dark-table nested-table"
+                    >
+                      <el-table-column prop="__created_at" label="创建时间" width="180">
+                        <template #default="{ row }">
+                          <div class="time-cell">
+                            <el-icon><el-timer /></el-icon>
+                            {{ formatTime(row.__created_at) }}
+                          </div>
+                        </template>
+                      </el-table-column>
+                      <el-table-column prop="endpoint" label="端点" width="180">
+                        <template #default="{ row }">
+                          <div class="endpoint-cell">
+                            <el-icon><el-position /></el-icon>
+                            {{ row.endpoint }}
+                          </div>
+                        </template>
+                      </el-table-column>
+                      <el-table-column prop="time_cost" label="耗时(ms)" width="120">
+                        <template #default="{ row }">
+                          <div class="time-cost-cell">
+                            <el-icon><el-timer /></el-icon>
+                            {{ row.time_cost }}
+                          </div>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="事件数据" min-width="200">
+                        <template #default="{ row }">
+                          <el-button 
+                            type="text" 
+                            @click="showEventData(row.event_data)"
+                            class="view-btn"
+                          >
+                            <el-icon><el-document /></el-icon>
+                            查看详情
+                          </el-button>
+                        </template>
+                      </el-table-column>
+                    </el-table>
+                  </el-collapse-item>
+                </el-collapse>
+              </el-collapse-item>
+            </el-collapse>
+          </div>
+
+          <!-- 服务-业务类型视图 -->
+          <div v-else-if="activeView === 'service-business'" class="service-business-view">
+            <el-collapse v-model="activeServiceBusinessGroups">
+              <el-collapse-item 
+                v-for="serviceGroup in groupedServiceBusiness" 
+                :key="serviceGroup.serviceName"
+                :name="serviceGroup.serviceName"
+              >
+                <!-- 服务层级标题 -->
+                <template #title>
+                  <div class="service-group-title">
+                    <el-icon><el-service /></el-icon>
+                    <span>{{ serviceGroup.serviceName || '未知服务' }}</span>
+                    <el-tag size="small" type="success">{{ serviceGroup.totalNodes }}条记录</el-tag>
+                  </div>
+                </template>
+                
+                <!-- 业务类型分组 -->
+                <el-collapse v-model="activeBusinessGroups[serviceGroup.serviceName]">
+                  <el-collapse-item 
+                    v-for="businessGroup in serviceGroup.businessGroups" 
+                    :key="businessGroup.businessType"
+                    :name="businessGroup.businessType"
+                  >
+                    <template #title>
+                      <div class="business-group-title">
+                        <el-icon><el-office-building /></el-icon>
+                        <div class="business-info">
+                          <span class="business-type">{{ businessGroup.businessType || '未知业务类型' }}</span>
+                        </div>
+                        <el-tag size="small" type="info">{{ businessGroup.nodes.length }}</el-tag>
+                      </div>
+                    </template>
+                    
+                    <el-table 
+                      :data="businessGroup.nodes" 
+                      stripe 
+                      style="width: 100%"
+                      class="dark-table nested-table"
+                    >
+                      <el-table-column prop="__created_at" label="创建时间" width="180">
+                        <template #default="{ row }">
+                          <div class="time-cell">
+                            <el-icon><el-timer /></el-icon>
+                            {{ formatTime(row.__created_at) }}
+                          </div>
+                        </template>
+                      </el-table-column>
+                      <el-table-column prop="node_key" label="节点" width="180">
+                        <template #default="{ row }">
+                          <div class="node-cell">
+                            <el-icon><el-connection /></el-icon>
+                            {{ row.node_key }}
+                          </div>
+                        </template>
+                      </el-table-column>
+                      <el-table-column prop="node_name" label="节点名称" width="150">
+                        <template #default="{ row }">
+                          <div class="node-name-cell">
+                            <el-icon><el-price-tag /></el-icon>
+                            {{ row.node_name }}
+                          </div>
+                        </template>
+                      </el-table-column>
+                      <el-table-column prop="endpoint" label="端点" width="180">
+                        <template #default="{ row }">
+                          <div class="endpoint-cell">
+                            <el-icon><el-position /></el-icon>
+                            {{ row.endpoint }}
+                          </div>
+                        </template>
+                      </el-table-column>
+                      <el-table-column prop="time_cost" label="耗时(ms)" width="120">
+                        <template #default="{ row }">
+                          <div class="time-cost-cell">
+                            <el-icon><el-timer /></el-icon>
+                            {{ row.time_cost }}
+                          </div>
+                        </template>
+                      </el-table-column>
+                      <el-table-column label="事件数据" min-width="200">
+                        <template #default="{ row }">
+                          <el-button 
+                            type="text" 
+                            @click="showEventData(row.event_data)"
+                            class="view-btn"
+                          >
+                            <el-icon><el-document /></el-icon>
+                            查看详情
+                          </el-button>
+                        </template>
+                      </el-table-column>
+                    </el-table>
+                  </el-collapse-item>
+                </el-collapse>
+              </el-collapse-item>
+            </el-collapse>
+          </div>
         </div>
+      </div>
+
+      <div v-else-if="activeTab === 'llm_agg'">
+        <LlmAgg />
       </div>
     </el-card>
 
@@ -614,6 +639,7 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import JsonViewer from 'vue-json-viewer'
+import LlmAgg from './LlmAgg.vue'
 import 'vue-json-viewer/style.css'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -630,13 +656,15 @@ import {
   InfoFilled,
   PriceTag,
   Document,
-  Time
+  Time,
+  DataAnalysis
 } from '@element-plus/icons-vue'
 
 export default {
   name: 'TraceQuery',
   components: {
     JsonViewer,
+    LlmAgg,
     // 注册图标组件
     ElView: View,
     ElKey: Key,
@@ -650,7 +678,8 @@ export default {
     ElInfoFilled: InfoFilled,
     ElPriceTag: PriceTag,
     ElDocument: Document,
-    ElTime: Time
+    ElTime: Time,
+    ElDataAnalysis: DataAnalysis
   },
   setup() {
     const route = useRoute()
@@ -683,6 +712,7 @@ export default {
       messageId: '',
       query: ''
     })
+    const paramConfig = ref({})
 
     // 计算属性
     const groupedNodes = computed(() => {
@@ -760,7 +790,7 @@ export default {
         serviceGroups[serviceName].totalNodes++;
       });
       
-      // 转换为数��格式并按时间戳排序
+      // 转换为数组格式并按时间戳排序
       return Object.values(serviceGroups)
         .map(service => ({
           ...service,
@@ -832,15 +862,24 @@ export default {
 
       try {
         isLoading.value = true
-        const response = await axios.post('/api/tracer/search', {
-          trace_id: queryForm.value.traceId
-        })
+        // 并行发送两个请求
+        const [searchResponse, configResponse] = await Promise.all([
+          axios.post('/api/tracer/search', {
+            trace_id: queryForm.value.traceId
+          }),
+          axios.post('/api/tracer/param_config')
+        ])
 
-        if (response.data.data) {
-          traceNodes.value = response.data.data.sort((a, b) => a.__created_at - b.__created_at)
+        // 处理参数配置响应
+        if (configResponse.data.errno === 0) {
+          paramConfig.value = configResponse.data.data
+        }
+
+        // 处理搜索响应
+        if (searchResponse.data.data) {
+          traceNodes.value = searchResponse.data.data.sort((a, b) => a.__created_at - b.__created_at)
           updateFilterOptions()
           
-          // 查找 start_rag 节点并提取信息
           const startRagNode = traceNodes.value.find(node => node.node_key === 'start_rag')
           if (startRagNode && startRagNode.event_data) {
             const eventData = typeof startRagNode.event_data === 'string' 
@@ -878,6 +917,22 @@ export default {
     const showEventData = (data) => {
       currentEventData.value = data
       dialogVisible.value = true
+
+      // 添加自定义渲染器
+      setTimeout(() => {
+        const jsonViewer = document.querySelector('.jv-container')
+        if (jsonViewer) {
+          const keys = jsonViewer.querySelectorAll('.jv-key')
+          keys.forEach(key => {
+            const paramKey = key.textContent.replace(':', '')
+            const paramInfo = paramConfig.value[paramKey]
+            if (paramInfo) {
+              key.setAttribute('data-type', paramInfo.param_type || '未知类型')
+              key.setAttribute('data-desc', paramInfo.param_desc || '暂无描述')
+            }
+          })
+        }
+      }, 100)
     }
 
     const handleClose = () => {
@@ -959,6 +1014,16 @@ export default {
       window.open('https://www.baidu.com', '_blank')
     }
 
+    // 添加当前激活菜单的计算属性
+    const activeMenu = computed(() => route.path)
+
+    // 添加 tab 切换相关的响应式变量和方法
+    const activeTab = ref('trace')
+
+    const handleTabChange = (tab) => {
+      activeTab.value = tab
+    }
+
     return {
       queryForm,
       traceNodes,
@@ -993,7 +1058,11 @@ export default {
       activeEnv,
       envQueries,
       ragInfo,
-      handleIconClick
+      handleIconClick,
+      paramConfig,
+      activeMenu,
+      activeTab,
+      handleTabChange,
     }
   }
 }
@@ -1173,75 +1242,6 @@ export default {
 }
 
 .dark-json >>> .jv-container.boxed {
-  border: 1px solid #ebeef5;
-}
-
-.dark-json >>> .jv-key {
-  color: #409EFF;
-  font-weight: 500;
-  position: relative;
-  cursor: help;
-  padding: 2px 4px;
-  border-radius: 3px;
-  transition: all 0.2s;
-}
-
-.dark-json >>> .jv-key:hover {
-  background: rgba(64, 158, 255, 0.1);
-}
-
-.dark-json >>> .jv-key::after {
-  content: attr(data-key);
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 4px 8px;
-  background: rgba(48, 49, 51, 0.9);
-  color: #fff;
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: nowrap;
-  visibility: hidden;
-  opacity: 0;
-  transition: all 0.2s;
-  z-index: 1000;
-}
-
-.dark-json >>> .jv-key:hover::after {
-  visibility: visible;
-  opacity: 1;
-  transform: translateX(-50%) translateY(-4px);
-}
-
-.dark-json >>> .jv-key::before {
-  content: '';
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 4px solid transparent;
-  border-top-color: rgba(48, 49, 51, 0.9);
-  visibility: hidden;
-  opacity: 0;
-  transition: all 0.2s;
-}
-
-.dark-json >>> .jv-key:hover::before {
-  visibility: visible;
-  opacity: 1;
-  transform: translateX(-50%) translateY(4px);
-}
-
-/* 优化 JSON 查看器的整体样式 */
-.dark-json >>> .jv-container {
-  padding: 16px;
-  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.dark-json >>> .jv-container.boxed {
   border: 1px solid #e4e7ed;
   border-radius: 8px;
 }
@@ -1278,7 +1278,23 @@ export default {
 }
 
 .dark-json >>> .jv-item {
-  margin: 2px 0;
+  margin: 8px 0;  /* 从原来的 2px 改为 8px */
+  line-height: 1.8;  /* 增加行高 */
+}
+
+/* 对象和数组内的缩进项也调整间距 */
+.dark-json >>> .jv-node {
+  margin: 4px 0 4px 20px;  /* 增加上下间距 */
+}
+
+/* 确保最后一个项目也有合适的间距 */
+.dark-json >>> .jv-node:last-child {
+  margin-bottom: 8px;
+}
+
+/* 调整折叠/展开按钮的位置，以配合新的行距 */
+.dark-json >>> .jv-toggle {
+  margin-top: 4px;  /* 调整折叠按钮的位置 */
 }
 
 /* 优化展开/折叠图标 */
@@ -1990,5 +2006,101 @@ export default {
 
 .query-card >>> .el-loading-spinner .path {
   stroke: #409EFF;
+}
+
+.dark-json >>> .jv-key {
+  position: relative;
+  cursor: help;
+}
+
+.dark-json >>> .jv-key[title] {
+  border-bottom: 1px dashed #909399;
+}
+
+.dark-json >>> .jv-key[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  background: rgba(48, 49, 51, 0.95);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: pre-line;
+  z-index: 1000;
+  min-width: 200px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dark-json >>> .jv-key[title]:hover::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(48, 49, 51, 0.95);
+  margin-bottom: -6px;
+}
+
+/* 添加二级菜单样式 */
+.sub-menu {
+  margin: -10px -20px 20px;
+  border-bottom: 1px solid #e4e7ed;
+  background: #fff;
+}
+
+.sub-menu-list {
+  border: none;
+  padding: 0 20px;
+}
+
+.sub-menu-list >>> .el-menu-item {
+  height: 46px;
+  line-height: 46px;
+  font-size: 14px;
+  color: #606266;
+  padding: 0 24px;
+}
+
+.sub-menu-list >>> .el-menu-item:hover {
+  color: #409EFF;
+  background: #ecf5ff;
+}
+
+.sub-menu-list >>> .el-menu-item.is-active {
+  color: #409EFF;
+  font-weight: 500;
+  border-bottom: 2px solid #409EFF;
+}
+
+.sub-menu-list >>> .el-menu-item i {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+/* 响应式调整 */
+@media screen and (max-width: 768px) {
+  .sub-menu-list >>> .el-menu-item {
+    padding: 0 16px;
+    font-size: 13px;
+  }
+}
+
+/* 添加模型统计相关样式 */
+.llm-statistics {
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+}
+
+.llm-statistics h3 {
+  margin: 0 0 20px;
+  color: #303133;
+  font-size: 18px;
+  font-weight: 500;
 }
 </style>
