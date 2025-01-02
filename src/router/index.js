@@ -1,11 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import TraceQuery from '../views/TraceQuery.vue'
 import Bak from '../views/bak.vue'
+import ApmMain from '../views/ApmMain.vue'
+
 const routes = [
   {
     path: '/',
     name: 'home',
-    component: TraceQuery
+    component: ApmMain
   },
   {
     path: '/trace',
