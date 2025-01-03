@@ -5,9 +5,12 @@ module.exports = defineConfig({
     'vuetify'
   ],
   devServer: {
+    allowedHosts: [
+      'xyz.rag-tool.ke.com',
+      '.ke.com'
+    ],
     proxy: {
       '/api': {
-        // target: 'http://101.42.184.25:8095',
         target: 'http://xyz.rag-workflow.test.ke.com',
         changeOrigin: true,
         pathRewrite: { '^/api': '/api' },
